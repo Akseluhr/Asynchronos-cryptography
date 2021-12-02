@@ -1,0 +1,24 @@
+{
+  "name": "ibs_rest",
+  "version": "1.0.0",
+  "description": "REST",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "RESTful",
+    "API",
+    "Posts"
+  ],
+  "author": "Görkem Pacaci & Jakob Malmstedt",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0"
+  },
+  "devDependencies": {
+    "morgan": "^1.7.0"
+  }
+}

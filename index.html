@@ -1,0 +1,134 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Message room with Node.js</title>
+    <script src="https://code.jquery.com/jquery-3.1.1.js"></script>
+    <script src ="/jsencrypt.min.js"></script>
+    <script type="text/javascript">
+
+    var sentMessages = [];
+
+    // constructs an object to be sent to the server
+    // based on user input
+    // makes a POST request to /messages with
+    sendMessage = function()
+    {
+      var user = document.getElementById('inputUserName').value;
+      var message = document.getElementById('inputText').value;
+
+      crypt = new JSEncrypt();
+      var receiverKey = $('#receiverPublicKey').val(); 
+      crypt.setKey(receiverKey);
+      console.log('RECEIVER KEY', receiverKey);
+      encryptedText = crypt.encrypt(message);
+
+        //the encrypted text will return false if the receiver key is empty (i.e. no encryption)
+        //Afterwards a non-encrypted message will be sent.
+        //Otherwise, the message is encrypted and sent.
+      if(!encryptedText){   
+        var msg = {userName:user, text:message};
+        console.log('Send msg', msg)
+       // var mess = JSON.parse(msg);
+        $.post("/messages", msg,() => getAllMessages());
+      }else{
+        sentMessages.push({encrypted:encryptedText, plain:message});
+        console.log('Encrypted Text', encryptedText);
+        var encMsg = {userName:user,text:encryptedText}; //?
+        console.log('Send Message', encMsg);
+        $.post("/messages", encMsg,() => getAllMessages());
+      }
+    }
+
+    //  get-request to the service, and when the result
+    //  arrives, fills everything to the messages table.
+    getAllMessages = function()
+    {
+      $.ajax({type: 'GET', url:"/messages", success:fillMessageTable});
+    }
+
+    //fetches the msg element and clears it 
+    //adds the messages to the message array using addMessage()
+    fillMessageTable = function(messages)
+    {
+      messagesTable = document.getElementById('messagesTable');   
+      messagesTable.innerHTML = "";
+      for(i in messages){
+        console.log('fillMessageTable',i, messages);
+        addMessage(messages[i]);
+      }      
+    }
+    // adding messages to the table and making them visualized
+    // delet button is calling on the delete function with the message's ID
+    addMessage = function(message){
+      console.log('MESSAGE', message);
+
+      crypt = new JSEncrypt();
+      var privateKey = $('#privateKey').val(); 
+      crypt.setKey(privateKey);
+      if (decrypted = crypt.decrypt(message.text))
+      { 
+        message.text = decrypted;
+      }
+      else 
+      {
+        for(i in sentMessages)
+        {
+          if (sentMessages[i].encrypted == message.text)
+           { message.text = sentMessages[i].plain; }
+        }
+      }
+
+      messagesTable = document.getElementById('messagesTable');
+      messagesTable.innerHTML +=
+        "<tr><td>"+message.userName + ": " + message.text+"</td><td><button onclick='deleteMessage(" +message.messageId+ ");' >Delete</button></tr>";
+    }
+
+    // delete request to the service
+    deleteMessage = function(messageId){
+        $.ajax({type: 'DELETE', url:"/messages/" + messageId, success:getAllMessages});
+    }
+
+    </script>
+  </head>
+  <body style="padding:20px;" onload="getAllMessages();">
+
+      <h1>Send a message</h1>
+      <input id="inputUserName" type="text" placeholder="username" style="width:100px"></input>
+      <input id="inputText" type="text" placeholder="message" style="width:250px"></input>
+      <button onclick="sendMessage();">Send</button>
+
+      <h1>Messages</h1>
+      <table id="messagesTable" style="width:400px; border:1px solid black"></table>
+      Public key:</br>
+      <textarea id="publicKey" cols ="65" rows ="10"> </textarea></br>
+      Private key:</br>
+      <textarea id="privateKey" cols ="65" rows ="10"> </textarea></br>
+      <script>
+      
+        makeNewKeys = function(){
+
+          //creates an encrypt object
+          //getKey creates new keys in the crypt object
+          crypt = new JSEncrypt();
+          crypt.getKey();
+
+          //fetches public and private key from crypt object
+          pubKey = crypt.getPublicKey();
+          privKey = crypt.getPrivateKey();
+
+          console.log(pubKey);
+          console.log(privKey);
+          var oldPublicKey = $('#publicKey').val(); 
+          $('#publicKey').val(pubKey); 
+          var oldPrivateKey = $('#privateKey').val(); 
+          $('#privateKey').val(privKey); 
+
+        }
+      </script>
+      
+      <button onclick="makeNewKeys();">New Keys</button></br>
+      Receiver public key:</br>
+      <textarea id="receiverPublicKey" cols ="65" rows ="10"> </textarea></br>
+
+  </body>
+</html>
